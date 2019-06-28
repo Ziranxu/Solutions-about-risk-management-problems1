@@ -1,0 +1,201 @@
+---
+title: "HW1"
+author: "Ziran Xu cooperated with Ziqi Dong about Q3 and Q4"
+date: "2019/1/29"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+
+## Q1
+  By using the formular to calculate log-return timeseries.
+Log[(Pt+dt)/Pt]=y(t)*dt-(1-(1+y(t)/2)^(-2*(T-t)))/y(t)*dy(t+dt)
+Now import the data and change the formate of the data we needed.
+```{r}
+data = read.csv('FRB.csv',header=TRUE)
+t= 1:1001
+for(i in 1001:1)
+{
+  t[i] =as.Date(data[i,1])
+}
+dt = diff(t)/365     #change the list formate to date formate then get the delta t
+y_one = 1:1001;
+for(i in 1001:1)
+{
+  y_one[i] =as.double(data[i,2])
+}
+dy_one = diff(y_one)  #change to double formate then get the delta yield rate of one year.
+y_two = 1:1001;
+for(i in 1001:1)
+{
+  y_two[i] = as.double(data[i,3])
+}
+dy_two = diff(y_two)  #change to double formate then get the delta yield rate of two years.  And so on until thirty years
+y_three = 1:1001;
+for(i in 1001:1)
+{
+  y_three[i] = as.double(data[i,4])
+}
+dy_three = diff(y_three)
+y_five = 1:1001;
+for(i in 1001:1)
+{
+  y_five[i] = as.double(data[i,5])
+}
+dy_five = diff(y_five)
+y_seven = 1:1001;
+for(i in 1001:1)
+{
+  y_seven[i] = as.double(data[i,6])
+}
+dy_seven = diff(y_seven)
+y_ten = 1:1001;
+for(i in 1001:1)
+{
+  y_ten[i] = as.double(data[i,7])
+}
+dy_ten = diff(y_ten)
+y_twenty = 1:1001;
+for(i in 1001:1)
+{
+  y_twenty[i] = as.double(data[i,8])
+}
+dy_twenty= diff(y_twenty)
+y_thirty = 1:1001;
+for(i in 1001:1)
+{
+  y_thirty[i] = as.double(data[i,9])
+}
+dy_thirty = diff(y_thirty)
+log_return_one = 1:1000;
+log_return_two = 1:1000;
+log_return_three = 1:1000;
+log_return_five = 1:1000;
+log_return_seven = 1:1000;
+log_return_ten = 1:1000;
+log_return_twenty = 1:1000;
+log_return_thirty = 1:1000;
+for(i in 1:1000)       #here begin to calculate the log returns
+{
+  log_return_one[i] =y_one[i+1]*dt[i]-(1-(1+y_one[i+1]/2)^(-2*1))/y_one[i+1]*dy_one[i]
+  log_return_two[i] =y_two[i+1]*dt[i]-(1-(1+y_two[i+1]/2)^(-2*2))/y_two[i+1]*dy_two[i]
+  log_return_three[i] =y_three[i+1]*dt[i]-(1-(1+y_three[i+1]/2)^(-2*3))/y_three[i+1]*dy_three[i]
+  log_return_five[i] =y_five[i+1]*dt[i]-(1-(1+y_five[i+1]/2)^(-2*5))/y_five[i+1]*dy_five[i]
+  log_return_ten[i] =y_ten[i+1]*dt[i]-(1-(1+y_ten[i+1]/2)^(-2*10))/y_ten[i+1]*dy_ten[i]
+  log_return_seven[i] =y_seven[i+1]*dt[i]-(1-(1+y_seven[i+1]/2)^(-2*10))/y_seven[i+1]*dy_seven[i]
+  log_return_twenty[i] =y_twenty[i+1]*dt[i]-(1-(1+y_twenty[i+1]/2)^(-2*20))/y_twenty[i+1]*dy_twenty[i]
+  log_return_thirty[i] =y_thirty[i+1]*dt[i]-(1-(1+y_thirty[i+1]/2)^(-2*30))/y_thirty[i+1]*dy_thirty[i]
+}
+result = as.data.frame(cbind(log_return_one,log_return_two,log_return_three,log_return_five,log_return_seven,log_return_ten,log_return_twenty,log_return_thirty))
+print(result)
+```
+## Q2
+calculate the return by using formula:
+   y(t) = y(t+dt)/100*dt
+Then subtract the yield by log-returns calculated by last question
+```{r}
+NYdata = read.csv('NYsofr.csv',header=TRUE)
+NYdata[,1]=as.Date(NYdata[,1],format='%m/%d/%Y')
+NYdt =as.numeric(diff(NYdata[,1]))/365
+NYsofar_return=1:1000
+for(i in 1:1000)
+{
+  NYsofar_return[i] = NYdata[i+1,2]/100*NYdt[i]
+}
+demean_one=NYsofar_return-log_return_one
+demean_two=NYsofar_return-log_return_two
+demean_three=NYsofar_return-log_return_three
+demean_five=NYsofar_return-log_return_five
+demean_seven=NYsofar_return-log_return_seven
+demean_ten=NYsofar_return-log_return_ten
+demean_twenty=NYsofar_return-log_return_twenty
+demean_thirty=NYsofar_return-log_return_thirty
+NYsofar_result = as.data.frame(cbind(demean_one,demean_two,demean_three,demean_five,demean_seven,demean_ten,demean_twenty,demean_thirty))
+print(NYsofar_result)
+```
+## Q3
+Throw the solnp function of Rsolnp package to achieve quasi-likelihood
+```{r}
+library(Rsolnp)
+theta=list()
+term=c(1,2,3,5,7,10,20,30)
+for(i in 1:8)     
+{
+  log_return=NYsofar_result[,i]
+  sigma_begin=var(log_return)
+  log_return=c(sigma_begin,(log_return)^2)
+  sigma=sigma_begin
+  f=function(t)     #  build the function of negative Quasi-Likelihood
+  {
+    sigma_initial=sigma_begin
+    sigma=integer(0)
+    sigma=c(sigma,sigma_initial)
+    for(j in 1:(length(log_return)-1))
+    {
+      sigma_one=t[1]+t[2]*log_return[j]+t[3]*sigma_initial
+      sigma=c(sigma,sigma_one)
+      sigma_initial=sigma_one
+    }
+    L=sum(-1/2*(log(2*pi*sigma[-1])+log_return[-1]/sigma[-1]))
+    return(-L)
+  }
+  
+  h=function(t)
+  {         
+    H=c(0)
+    H[1]=t[3]+t[2]
+    return(H) 
+  }               
+  
+  S=solnp(pars=c(0,0.5,0.5),fun=f,ineqfun=h,ineqLB=c(0),ineqUB=c(1),LB=c(0,0,0),UB=c(Inf,Inf,Inf),control = list(xtol_rel = 1e-10))
+  t=S$pars
+  theta[[as.character(term[i])]]=t   #optimize parameters by using quasi-likelihood method
+}
+print(theta)
+```
+## Q4
+From the book -Algorithm 3.30 (M-estimators of location and dispersion).
+First estimate and take miu = mean of the demean Treasury log-returns and dispersion = variance of the demean Treasury log-returns.
+Then calculate the Di^2 and the weight function.
+Finally use the loop to continue until estimates converge
+```{r}
+v=3
+location = apply(as.matrix(NYsofar_result),2,mean)  #location is u hat
+dispersion=cov(as.matrix(NYsofar_result))
+dispersion_new = matrix(0,nrow=ncol(NYsofar_result),ncol=ncol(NYsofar_result))
+k = 0
+while(abs(det(dispersion-dispersion_new))>10^(-3) & k<10^(3))
+{
+  dispersion_new = dispersion
+  d=as.matrix(NYsofar_result)
+  for(i in 1:8)
+  {
+    d[,i]=d[,i]-location[i]
+  }
+  Di_sq=diag(d%*%solve(dispersion)%*%t(d)) #calculate the Di suqare by formula: Di^2 = reverse(Xi-u)*omiga*(Xi-u)
+  w=(ncol(NYsofar_result)+v)/(Di_sq+v)   # formula: w1(x)=(d+v)/(x^2+v)=w2(x^2)
+  location=weight%*%as.matrix(X)/sum(weight)
+  w_matrix = diag(w)
+  dispersion=matrix(0,nrow=ncol(NYsofar_result),ncol=ncol(NYsofar_result))
+  for(i in 1:nrow(NYsofar_result))     #Update the dispersion matrix estimate using (weight_matrix%*%(decentral)%*%t(decentral))/n
+  {
+    dispersion=dispersion+w[i]^2*d[iter,]%*%t(d[i,])
+  }
+  dispersion = dispersion/nrow(NYsofar_result)
+  k = k+1
+}
+print(dispersion)
+```
+## Q5
+For calculating the prominent is the largest eigenvector of the dispersion needs to calculate all the values of eigenvalue and then select the biggest one to calculate the ratio of biggest number and the sum of all numbers
+In order to explain most of the information, the number of factors should be 80% of all eigenvalues.
+```{r}
+dispersion_eigen=eigen(dispersion)
+dispersion_eigenvalue= dispersion_eigen$value
+dispersion_eigenvalue = sort(dispersion_eigenvalue,decreasing = T)  #find the biggest engenvalue
+dispersion_prominent = dispersion_eigenvalue[1]/sum(dispersion_eigenvalue)
+print(dispersion_prominent)
+factornum =floor(length(dispersion_eigenvalue)*0.8)  #factors should be 80% numbers of the all eigenvalues
+print(factornum)
+```
